@@ -1,10 +1,17 @@
-import type { HermesSettings, Message, ToolProgressEvent } from '../types';
+import type {
+  ApprovalChoice,
+  ApprovalRequestEvent,
+  HermesSettings,
+  Message,
+  ToolProgressEvent,
+} from '../types';
 
-export type { ToolProgressEvent };
+export type { ApprovalRequestEvent, ToolProgressEvent };
 
 export interface StreamCallbacks {
   onToken: (token: string) => void;
   onToolProgress: (event: ToolProgressEvent) => void;
+  onApprovalRequest: (event: ApprovalRequestEvent) => void;
   onComplete: (fullText: string) => void;
   onError: (error: string) => void;
 }
@@ -97,6 +104,11 @@ export async function sendMessage(
             continue;
           }
 
+          if (event.eventType === 'hermes.approval.request') {
+            callbacks.onApprovalRequest(parsed as ApprovalRequestEvent);
+            continue;
+          }
+
           const token = parsed.choices?.[0]?.delta?.content ?? '';
           if (token) {
             fullText += token;
@@ -113,10 +125,16 @@ export async function sendMessage(
       if (event && event.data !== '[DONE]') {
         try {
           const parsed = JSON.parse(event.data);
-          const token = parsed.choices?.[0]?.delta?.content ?? '';
-          if (token) {
-            fullText += token;
-            callbacks.onToken(token);
+          if (event.eventType === 'hermes.tool.progress') {
+            callbacks.onToolProgress(parsed as ToolProgressEvent);
+          } else if (event.eventType === 'hermes.approval.request') {
+            callbacks.onApprovalRequest(parsed as ApprovalRequestEvent);
+          } else {
+            const token = parsed.choices?.[0]?.delta?.content ?? '';
+            if (token) {
+              fullText += token;
+              callbacks.onToken(token);
+            }
           }
         } catch {
           // Ignore incomplete trailing data.
@@ -128,4 +146,64 @@ export async function sendMessage(
   } catch (error) {
     callbacks.onError(`Network error: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+export async function respondToApproval(
+  settings: HermesSettings,
+  request: ApprovalRequestEvent,
+  choice: ApprovalChoice,
+): Promise<void> {
+  if (!settings.apiUrl || !settings.apiKey) {
+    throw new Error('Hermes is not configured. Open Settings to add your API URL and key.');
+  }
+
+  const response = await fetch(`${normalizeApiUrl(settings.apiUrl)}/v1/approvals`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${settings.apiKey}`,
+      'X-Hermes-Session-Id': request.sessionId ?? '',
+    },
+    body: JSON.stringify({
+      approval_session_key: request.approvalSessionKey,
+      session_id: request.sessionId,
+      choice,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Approval error ${response.status}: ${errorText}`);
+  }
+}
+
+export async function sendSlashCommand(
+  command: string,
+  settings: HermesSettings,
+  sessionId: string,
+): Promise<string> {
+  if (!settings.apiUrl || !settings.apiKey) {
+    return 'Hermes is not configured. Open Settings to add your API URL and key.';
+  }
+
+  const response = await fetch(`${normalizeApiUrl(settings.apiUrl)}/v1/commands`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${settings.apiKey}`,
+      'X-Hermes-Session-Id': sessionId,
+    },
+    body: JSON.stringify({
+      command,
+      session_id: sessionId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    return `Command error ${response.status}: ${errorText}`;
+  }
+
+  const parsed = await response.json();
+  return parsed.content ?? '';
 }

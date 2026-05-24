@@ -28,3 +28,26 @@ export interface ToolProgressEvent {
   status: 'running' | 'completed' | 'error';
   toolCallId?: string;
 }
+
+export interface ApprovalRequestEvent {
+  command: string;
+  description?: string;
+  pattern_key?: string;
+  pattern_keys?: string[];
+  sessionId?: string;
+  approvalSessionKey: string;
+  timestamp?: number;
+  choices?: ApprovalChoice[];
+}
+
+export type ApprovalChoice = 'once' | 'session' | 'always' | 'deny';
+
+export interface ActivityTrailItem {
+  id: string;
+  tool: string;
+  emoji?: string;
+  label: string;
+  status: ToolProgressEvent['status'];
+  count: number;
+  timestamp: number;
+}
