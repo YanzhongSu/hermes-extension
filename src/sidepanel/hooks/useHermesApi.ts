@@ -213,14 +213,18 @@ export async function fetchSlashCommands(settings: HermesSettings): Promise<Slas
   if (!settings.apiUrl || !settings.apiKey) return [];
 
   const response = await fetch(`${normalizeApiUrl(settings.apiUrl)}/v1/commands`, {
-    method: 'GET',
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${settings.apiKey}`,
     },
+    body: JSON.stringify({
+      command: '/help',
+    }),
   });
 
   if (!response.ok) return [];
 
   const parsed = await response.json();
-  return Array.isArray(parsed.data) ? (parsed.data as SlashCommand[]) : [];
+  return Array.isArray(parsed.commands) ? (parsed.commands as SlashCommand[]) : [];
 }
