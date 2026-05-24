@@ -56,6 +56,12 @@ export function ChatInput({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Tab' && matchingCommands.length > 0) {
+      event.preventDefault();
+      chooseCommand(matchingCommands[0]);
+      return;
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       submit();
@@ -73,7 +79,7 @@ export function ChatInput({
       .slice(0, 9);
 
   const chooseCommand = (command: SlashCommand) => {
-    setValue(`/${command.name}${command.requires_argument ? ' ' : ''}`);
+    setValue(`/${command.name}${command.args_hint ? ' ' : ''}`);
   };
 
   const attachPage = async () => {
