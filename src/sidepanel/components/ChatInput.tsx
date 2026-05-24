@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useState } from 'react';
-import type { ExtractedContent } from '../types';
+import type { ExtractedContent, SlashCommand } from '../types';
 
 interface ChatInputProps {
   onSend: (message: string, pageContext?: string) => void;
@@ -8,6 +8,7 @@ interface ChatInputProps {
   onExtractPage: () => Promise<ExtractedContent | null>;
   isExtracting: boolean;
   blockedReason: string | null;
+  slashCommands: SlashCommand[];
 }
 
 function formatPageContext(content: ExtractedContent): string {
@@ -27,6 +28,7 @@ export function ChatInput({
   onExtractPage,
   isExtracting,
   blockedReason,
+  slashCommands,
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [pageContext, setPageContext] = useState<string | undefined>();
@@ -60,6 +62,20 @@ export function ChatInput({
     }
   };
 
+  const commandQuery = value.startsWith('/') && !value.includes(' ') ? value.slice(1).toLowerCase() : null;
+  const matchingCommands = commandQuery === null
+    ? []
+    : slashCommands
+      .filter((command) => (
+        command.name.toLowerCase().startsWith(commandQuery)
+        || command.aliases.some((alias) => alias.toLowerCase().startsWith(commandQuery))
+      ))
+      .slice(0, 9);
+
+  const chooseCommand = (command: SlashCommand) => {
+    setValue(`/${command.name}${command.requires_argument ? ' ' : ''}`);
+  };
+
   const attachPage = async () => {
     const content = await onExtractPage();
     if (!content) return;
@@ -74,6 +90,21 @@ export function ChatInput({
       {(notice || blockedReason || pageTitle) && (
         <div className="composer-status" role="status">
           {blockedReason ?? notice ?? `Page attached: ${pageTitle}`}
+        </div>
+      )}
+      {matchingCommands.length > 0 && (
+        <div className="command-menu" role="listbox" aria-label="Slash commands">
+          {matchingCommands.map((command) => (
+            <button
+              className="command-menu-item"
+              type="button"
+              key={command.name}
+              onClick={() => chooseCommand(command)}
+            >
+              <span className="command-name">/{command.name}{command.args_hint ? ` ${command.args_hint}` : ''}</span>
+              <span className="command-description">{command.description}</span>
+            </button>
+          ))}
         </div>
       )}
       <div className="composer-row">

@@ -51,3 +51,14 @@ export interface ActivityTrailItem {
   count: number;
   timestamp: number;
 }
+
+export interface SlashCommand {
+  name: string;
+  description: string;
+  category: string;
+  aliases: string[];
+  args_hint: string;
+  subcommands: string[];
+  requires_argument: boolean;
+  source: 'builtin' | 'plugin';
+}

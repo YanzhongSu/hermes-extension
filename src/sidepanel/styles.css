@@ -378,6 +378,54 @@ textarea:disabled {
   font-size: 12px;
 }
 
+.command-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  margin: 0 0 8px;
+  overflow-y: auto;
+  border: 1px solid #cfd8d1;
+  border-radius: 8px;
+  padding: 4px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgb(23 33 28 / 10%);
+}
+
+.command-menu-item {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 8px;
+  color: #17211c;
+  background: transparent;
+  text-align: left;
+}
+
+.command-menu-item:hover {
+  background: #eef4ef;
+}
+
+.command-name {
+  color: #1f5d46;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.command-description {
+  overflow: hidden;
+  color: #56645d;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .composer-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

@@ -6,6 +6,7 @@ import { ChatWindow } from './components/ChatWindow';
 import { SettingsPanel } from './components/SettingsPanel';
 import {
   respondToApproval,
+  fetchSlashCommands,
   sendMessage,
   sendSlashCommand,
   type ApprovalRequestEvent,
@@ -13,7 +14,7 @@ import {
 } from './hooks/useHermesApi';
 import { useConversation } from './hooks/useConversation';
 import { usePageContext } from './hooks/usePageContext';
-import type { ActivityTrailItem, ApprovalChoice } from './types';
+import type { ActivityTrailItem, ApprovalChoice, SlashCommand } from './types';
 import {
   DEFAULT_SETTINGS,
   getSessionId,
@@ -29,6 +30,7 @@ export function SidePanel() {
   const [toolActivity, setToolActivity] = useState<ToolProgressEvent | null>(null);
   const [activityTrail, setActivityTrail] = useState<ActivityTrailItem[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequestEvent[]>([]);
+  const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -55,8 +57,18 @@ export function SidePanel() {
     setSettings(nextSettings);
     if (nextSettings.apiUrl && nextSettings.apiKey) {
       setView('chat');
+      fetchSlashCommands(nextSettings).then(setSlashCommands).catch(() => setSlashCommands([]));
+    } else {
+      setSlashCommands([]);
     }
   };
+
+  useEffect(() => {
+    if (!settings.apiUrl || !settings.apiKey) {
+      return;
+    }
+    fetchSlashCommands(settings).then(setSlashCommands).catch(() => setSlashCommands([]));
+  }, [settings]);
 
   const handleNew = async () => {
     await resetConversation();
@@ -229,6 +241,7 @@ export function SidePanel() {
         onExtractPage={extractCurrentPage}
         isExtracting={isExtracting}
         blockedReason={blockedReason}
+        slashCommands={slashCommands}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import type {
   ApprovalRequestEvent,
   HermesSettings,
   Message,
+  SlashCommand,
   ToolProgressEvent,
 } from '../types';
 
@@ -206,4 +207,20 @@ export async function sendSlashCommand(
 
   const parsed = await response.json();
   return parsed.content ?? '';
+}
+
+export async function fetchSlashCommands(settings: HermesSettings): Promise<SlashCommand[]> {
+  if (!settings.apiUrl || !settings.apiKey) return [];
+
+  const response = await fetch(`${normalizeApiUrl(settings.apiUrl)}/v1/commands`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${settings.apiKey}`,
+    },
+  });
+
+  if (!response.ok) return [];
+
+  const parsed = await response.json();
+  return Array.isArray(parsed.data) ? (parsed.data as SlashCommand[]) : [];
 }
